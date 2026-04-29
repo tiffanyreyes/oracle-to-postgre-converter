@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Oracle SQL to PostgreSQL Converter</title>
+<style>
+* {
+box-sizing: border-box;
+font-family: Arial, sans-serif;
+}
+
+body {
+margin: 0;
+padding: 20px;
+background: #f4f7fa;
+color: #222;
+}
+
+h1 {
+text-align: center;
+margin-bottom: 20px;
+}
+
+.container {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 20px;
+}
+
+.panel {
+background: white;
+border-radius: 12px;
+padding: 16px;
+box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+textarea {
+width: 100%;
+height: 400px;
+border: 1px solid #ccc;
+border-radius: 8px;
+padding: 12px;
+resize: vertical;
+font-family: monospace;
+font-size: 14px;
+}
+
+.buttons {
+margin-top: 12px;
+display: flex;
+gap: 10px;
+flex-wrap: wrap;
+}
+
+button {
+border: none;
+background: #2563eb;
+color: white;
+padding: 10px 16px;
+border-radius: 8px;
+cursor: pointer;
+font-size: 14px;
+}
+
+button:hover {
+background: #1d4ed8;
+}
+
+.secondary {
+background: #10b981;
+}
+
+.secondary:hover {
+background: #059669;
+}
+
+@media (max-width: 900px) {
+.container {
+grid-template-columns: 1fr;
+}
+}
+</style>
+</head>
+<body>
+<h1>Oracle SQL → PostgreSQL Converter</h1>
+
+<div class="container">
+<div class="panel">
+<h2>Oracle SQL Input</h2>
+<textarea id="oracleInput" placeholder="Paste Oracle SQL here..."></textarea>
+<div class="buttons">
+<button onclick="convertSQL()">Convert</button>
+<button class="secondary" onclick="clearFields()">Clear</button>
+</div>
+</div>
+
+<div class="panel">
+<h2>PostgreSQL Output</h2>
+<textarea id="pgOutput" readonly placeholder="Converted PostgreSQL SQL will appear here..."></textarea>
+<div class="buttons">
+<button onclick="copyOutput()">Copy Output</button>
+</div>
+</div>
+</div>
+
+<script>
+function convertSQL() {
+let sql = document.getElementById("oracleInput").value;
+
+if (!sql.trim()) {
+alert("Please enter Oracle SQL code.");
+return;
+}
+
+let converted = sql;
+
+// Basic Oracle -> PostgreSQL conversions
+converted = converted.replace(/\bNVL\s*\(/gi, "COALESCE(");
+converted = converted.replace(/\bSYSDATE\b/gi, "CURRENT_DATE");
+converted = converted.replace(/\bSYSTIMESTAMP\b/gi, "CURRENT_TIMESTAMP");
+converted = converted.replace(/\bNUMBER\b/gi, "NUMERIC");
+converted = converted.replace(/\bVARCHAR2\b/gi, "VARCHAR");
+converted = converted.replace(/\bCLOB\b/gi, "TEXT");
+converted = converted.replace(/\bBLOB\b/gi, "BYTEA");
+converted = converted.replace(/\bTRUNC\s*\(/gi, "DATE_TRUNC(");
+
+// Replace Oracle outer join syntax (+) with placeholder
+converted = converted.replace(/\(\+\)/g, " /* OUTER JOIN: manual conversion needed */ ");
+
+// Convert sequence usage
+converted = converted.replace(/(\w+)\.NEXTVAL/gi, "nextval('$1')");
+converted = converted.replace(/(\w+)\.CURRVAL/gi, "currval('$1')");
+
+// Remove FROM DUAL
+converted = converted.replace(/\s+FROM\s+DUAL/gi, "");
+
+// ROWNUM -> LIMIT placeholder
+converted = converted.replace(/\bROWNUM\s*<=\s*(\d+)/gi, "LIMIT $1");
+
+document.getElementById("pgOutput").value = converted;
+}
+
+function copyOutput() {
+const output = document.getElementById("pgOutput");
+output.select();
+document.execCommand("copy");
+alert("Converted SQL copied to clipboard!");
+}
+
+function clearFields() {
+document.getElementById("oracleInput").value = "";
+document.getElementById("pgOutput").value = "";
+}
+</script>
+</body>
+</html>
