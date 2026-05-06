@@ -8,28 +8,73 @@
 </head>
 <body>
   <h1>Oracle SQL → PostgreSQL Converter</h1>
+<div class="container">
+<div class="panel">
+<h2>Oracle SQL Input</h2>
+<textarea id="oracleInput" placeholder="Paste Oracle SQL here..."></textarea>
+<div class="buttons">
+<button onclick="convertSQL()">Convert</button>
+<button class="secondary" onclick="clearFields()">Clear</button>
+</div>
+</div>
 
-  <div class="container">
-    <div class="panel">
-      <h2>Oracle SQL Input</h2>
-      <textarea id="oracleInput" placeholder="Paste Oracle SQL here..."></textarea>
+<div class="panel">
+<h2>PostgreSQL Output</h2>
+<textarea id="pgOutput" readonly placeholder="Converted PostgreSQL SQL will appear here..."></textarea>
+<div class="buttons">
+<button onclick="copyOutput()">Copy Output</button>
+</div>
+</div>
+</div>
 
-      <div class="buttons">
-        <button onclick="convertSQL()">Convert</button>
-        <button class="secondary" onclick="clearFields()">Clear</button>
-      </div>
-    </div>
+<script>
+function convertSQL() {
+let sql = document.getElementById("oracleInput").value;
 
-    <div class="panel">
-      <h2>PostgreSQL Output</h2>
-      <textarea id="pgOutput" readonly placeholder="Converted PostgreSQL SQL will appear here..."></textarea>
+if (!sql.trim()) {
+alert("Please enter Oracle SQL code.");
+return;
+}
 
-      <div class="buttons">
-        <button onclick="copyOutput()">Copy Output</button>
-      </div>
-    </div>
-  </div>
+let converted = sql;
 
-  <script src="converter.js"></script>
+// Basic Oracle -> PostgreSQL conversions
+converted = converted.replace(/\bNVL\s*\(/gi, "COALESCE(");
+converted = converted.replace(/\bSYSDATE\b/gi, "CURRENT_DATE");
+converted = converted.replace(/\bSYSTIMESTAMP\b/gi, "CURRENT_TIMESTAMP");
+converted = converted.replace(/\bNUMBER\b/gi, "NUMERIC");
+converted = converted.replace(/\bVARCHAR2\b/gi, "VARCHAR");
+converted = converted.replace(/\bCLOB\b/gi, "TEXT");
+converted = converted.replace(/\bBLOB\b/gi, "BYTEA");
+converted = converted.replace(/\bTRUNC\s*\(/gi, "DATE_TRUNC(");
+
+// Replace Oracle outer join syntax (+) with placeholder
+converted = converted.replace(/\(\+\)/g, " /* OUTER JOIN: manual conversion needed */ ");
+
+// Convert sequence usage
+converted = converted.replace(/(\w+)\.NEXTVAL/gi, "nextval('$1')");
+converted = converted.replace(/(\w+)\.CURRVAL/gi, "currval('$1')");
+
+// Remove FROM DUAL
+converted = converted.replace(/\s+FROM\s+DUAL/gi, "");
+
+// ROWNUM -> LIMIT placeholder
+converted = converted.replace(/\bROWNUM\s*<=\s*(\d+)/gi, "LIMIT $1");
+
+document.getElementById("pgOutput").value = converted;
+}
+
+function copyOutput() {
+const output = document.getElementById("pgOutput");
+output.select();
+document.execCommand("copy");
+alert("Converted SQL copied to clipboard!");
+}
+
+function clearFields() {
+document.getElementById("oracleInput").value = "";
+document.getElementById("pgOutput").value = "";
+}
+</script>
 </body>
 </html>
